@@ -1,4 +1,4 @@
 package joueur;
 
-public class Joueur {
+public abstract class Joueur {
 }

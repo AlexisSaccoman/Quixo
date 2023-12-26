@@ -1,5 +1,5 @@
 package joueur;
 
-public class JoueurIA {
+public class JoueurIA extends Joueur{
 
 }
