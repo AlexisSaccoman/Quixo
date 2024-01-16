@@ -17,6 +17,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import joueur.Joueur;
 import joueur.JoueurHumain;
+import joueur.JoueurIA;
 import plateau.Plateau;
 
 import java.io.IOException;
@@ -25,6 +26,24 @@ import java.io.IOException;
 
 
 public class GameController {
+
+    /*
+        sélectionner les sprites en fonction
+    */
+    private String spriteDefault = "./sprites/Blanc.png";
+    private String spriteJ1 = "./sprites/res/pion.png";
+    private String spriteJ2 = "./sprites/res/pion(2).png";
+
+    private int scoreJ1 = 0;
+    private int scoreJ2 = 0;
+
+    JoueurHumain j1 = new JoueurHumain("Joueur 1", "X");
+    Joueur j2;
+
+    Plateau board;
+
+    public String modeJeu = "Humain";
+
 
     @FXML
     private Button abandonner_button;
@@ -64,13 +83,17 @@ public class GameController {
 
     @FXML
     void abandonner(ActionEvent event) {
-
+        Joueur j = board.getTour();
+        if(j == j1){
+            score_j2.setText(Integer.toString(this.scoreJ2+1));
+        }else{
+            score_j1.setText(Integer.toString(this.scoreJ1+1));
+        }
+        board = new Plateau(j1, j2);
+        init();
     }
 
-    JoueurHumain j1 = new JoueurHumain();
-    JoueurHumain j2 = new JoueurHumain();
 
-    Plateau board = new Plateau(j1, j2);
 
     @FXML
     void goBackToMenu(MouseEvent event) {
@@ -101,7 +124,8 @@ public class GameController {
 
     @FXML
     void nouvellePartie(ActionEvent event) {
-
+        board = new Plateau(j1, j2);
+        init();
     }
 
     void lancerPartie() {
@@ -114,6 +138,13 @@ public class GameController {
 
     @FXML
     public void initialize() {
+        // on si on est dans humain vs Ia on doit avoir j2 de type JoueurIA sinon on a j2 de type JoueurHumain
+        if(this.modeJeu == "Humain"){
+            j2 = new JoueurHumain("Joueur 2", "O");
+        }else{
+            j2 = new JoueurIA("Joueur 2", "O");
+        }
+        board = new Plateau(j1, j2);
         init();
     }
 
@@ -122,7 +153,7 @@ public class GameController {
         for (int row = 0; row < 5; row++) {
             for (int col = 0; col < 5; col++) {
                 // Charger l'image du sprite blanc (ajustez le chemin d'accès en fonction de votre projet)
-                Image spriteBlanc = new Image(getClass().getResourceAsStream("./sprites/Blanc.png"));
+                Image spriteBlanc = new Image(getClass().getResourceAsStream(this.spriteDefault));
 
                 // Créer un ImageView avec l'image du sprite blanc
                 ImageView imageView = new ImageView(spriteBlanc);
@@ -143,12 +174,18 @@ public class GameController {
     }
 
 
-    // méthode qui permet de jouer un coup (fait appel aux différentes méthodes de la classe Plateau)
+
     @FXML
     public void jouerCoup(MouseEvent event) {
+
+        jouerCoupHumain(event);
+
+    }
+
+    // méthode qui permet de jouer un coup (fait appel aux différentes méthodes de la classe Plateau)
+    public void jouerCoupHumain(MouseEvent event){
         // Récupérer la source de l'événement (la case cliquée)
         StackPane clickedCell = (StackPane) event.getSource();
-
 
         // Récupérer les indices de la case cliquée dans la grille
         int row = GridPane.getRowIndex(clickedCell);
@@ -161,11 +198,70 @@ public class GameController {
 
         boolean verif = board.jouerPion(row, col, direction);
 
-        if(verif == true){
+        if (verif) {
             updateGraphic();
-        }
+            Joueur gagnant = board.isGameWon();
+            if (gagnant != null) {
+                // La partie est gagnée, mettre à jour le score
+                board.setScore(gagnant);
+                this.scoreJ1 += board.scorej1;
+                this.scoreJ2 += board.scorej2;
+                if (gagnant.equals(j1)) {
+                    score_j1.setText(Integer.toString(this.scoreJ1));
+                } else if (gagnant.equals(j2)) {
+                    score_j2.setText(Integer.toString(this.scoreJ2));
+                }
 
+                // on remet la grille à 0
+                board = new Plateau(j1, j2);
+                init();
+            }else{
+                board.setTour();
+                tour_joueur.setText(board.getTour().name);
+
+                // Gestion du cas si c'est l'IA qui joue
+                if(j2 instanceof JoueurIA){
+                    jouerCoupIA((JoueurIA) this.j2);
+                }
+            }
+        }
     }
+
+    public void jouerCoupIA(JoueurIA j2){
+
+
+        int[] coord = j2.getRandomMove(board);
+        //int[] coord = j2.getSmarterMove()
+        String direction = j2.getDirection();
+
+        Joueur j = board.getTour();
+
+        boolean verif = board.jouerPion(coord[0], coord[1], direction);
+
+        if (verif) {
+            updateGraphic();
+            Joueur gagnant = board.isGameWon();
+            if (gagnant != null) {
+                // La partie est gagnée, mettre à jour le score
+                board.setScore(gagnant);
+                this.scoreJ1 += board.scorej1;
+                this.scoreJ2 += board.scorej2;
+                if (gagnant.equals(j1)) {
+                    score_j1.setText(Integer.toString(this.scoreJ1));
+                } else if (gagnant.equals(j2)) {
+                    score_j2.setText(Integer.toString(this.scoreJ2));
+                }
+
+                // on remet la grille à 0
+                board = new Plateau(j1, j2);
+                init();
+            }else{
+                board.setTour();
+                tour_joueur.setText(board.getTour().name);
+            }
+        }
+    }
+
 
     @FXML
     public String selectionnerDirection() {
@@ -204,7 +300,6 @@ public class GameController {
 
         // Ajouter un gestionnaire d'événements pour le clic sur le bouton
         button.setOnAction(event -> {
-            System.out.println("Cliqué sur " + direction);
             selectedDirection = direction;
             stage.close(); // Fermer la fenêtre après la sélection
         });
@@ -218,9 +313,9 @@ public class GameController {
         for (int row = 0; row < 5; row++) {
             for (int col = 0; col < 5; col++) {
                 // Charger l'image du sprite blanc (ajustez le chemin d'accès en fonction de votre projet)
-                Image spriteBlanc = new Image(getClass().getResourceAsStream("./sprites/Blanc.png"));
-                Image spriteJ1 = new Image(getClass().getResourceAsStream("./sprites/res/russie.png"));
-                Image spriteJ2 = new Image(getClass().getResourceAsStream("./sprites/res/ukraine.png"));
+                Image spriteBlanc = new Image(getClass().getResourceAsStream(this.spriteDefault));
+                Image spriteJ1 = new Image(getClass().getResourceAsStream(this.spriteJ1));
+                Image spriteJ2 = new Image(getClass().getResourceAsStream(this.spriteJ2));
 
                 Image sprite = null;
                 if(board.getPion(row, col).getState() == "B"){
@@ -250,9 +345,6 @@ public class GameController {
             }
         }
     }
-
-
-
 
 
 

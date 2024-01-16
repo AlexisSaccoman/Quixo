@@ -2,7 +2,6 @@ package plateau;
 
 import joueur.Joueur;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Plateau {
@@ -13,6 +12,11 @@ public class Plateau {
     private Joueur j1; // signe associé => X
     private Joueur j2; // signe associé => O
     private Joueur tour = j1;
+
+    public int scorej1 = 0;
+    public int scorej2 = 0;
+
+    public int[] lastMove;
 
 
 
@@ -35,20 +39,27 @@ public class Plateau {
     }
 
     // actions de jeu
-
+    // méthode principale pour jouer un coup
     public boolean jouerPion(int row, int col, String direction){
 
-        if(this.plateau.get(row).get(col).getState() == "B"){
-            if(row == 0 || row == this.boardRows-1 || col == 0 || col == this.boardCols-1){
+
+        if(row == 0 || row == this.boardRows-1 || col == 0 || col == this.boardCols-1){
+            if(this.plateau.get(row).get(col).getState() == "B"){
                 jouerCoup(row,col,direction);
-                setTour();
+                return true;
+            }
+            if(this.plateau.get(row).get(col).getState() == this.tour.status){
+                jouerCoup(row,col,direction);
                 return true;
             }
         }
+
         return false;
     }
 
     void jouerCoup(int row, int col, String direction){
+        // Mettez à jour lastMove avec les coordonnées du dernier mouvement
+        lastMove = new int[]{row, col};
         if(this.tour == j1){
             this.plateau.get(row).get(col).setStateX();
             moove(row, col, direction);
@@ -166,46 +177,136 @@ public class Plateau {
     public Joueur isGameWon() {
         String init;
 
-        // vérifier les lignes - V
-        for (int i = 0; i < boardCols; i++) {
+        // vérifier les lignes
+        for (int i = 0; i < boardRows; i++) {
             init = this.plateau.get(i).get(0).getState();
-            for (int j = 0; j < boardCols-1; j++) {
-                if(this.plateau.get(i).get(j+1).getState() == init){
-                    if(j == boardCols-1){
-                        return this.tour;
+            if (init != "B") {
+                for (int j = 1; j < boardCols; j++) {
+                    if (this.plateau.get(i).get(j).getState().equals(init)) {
+                        if(j == boardCols-1){
+                            return this.tour;
+                        }
+                    }else{
+                        break;
                     }
                 }
             }
         }
 
-        // vérifier les colonnes - X
+
+        // vérifier les colonnes
         for (int i = 0; i < boardCols; i++) {
             init = this.plateau.get(0).get(i).getState();
-            for (int j = 0; j < boardCols-1; j++) {
-                if(this.plateau.get(j+1).get(i).getState() == init){
-                    if(j == boardCols-1){
-                        return this.tour;
+            if (init != "B") {
+                for (int j = 1; j < boardRows; j++) {
+                    if (this.plateau.get(j).get(i).getState().equals(init)) {
+                        if (j == boardRows - 1) {
+                            return this.tour;
+                        }
+                    }else{
+                        break;
                     }
                 }
             }
         }
 
-        // vérifier la 1ère diagonale - X
-        for (int i = 0; i < boardCols; i++) {
-            init = this.plateau.get(0).get(i).getState();
-            for (int j = 0; j < boardCols-1; j++) {
-                if(this.plateau.get(j+1).get(i).getState() == init){
-                    if(j == boardCols-1){
+        // vérifier la diagonale de gauche à droite
+        init = this.plateau.get(0).get(0).getState();
+        if (init != "B") {
+            for (int i = 1; i < boardCols; i++) {
+                if (this.plateau.get(i).get(i).getState().equals(init)) {
+                    if(i == boardCols - 1){
                         return this.tour;
                     }
+                }else{
+                    break;
                 }
             }
         }
 
-        // vérifier la 2ème diagonale - X
+
+        // vérifier la diagonale de droite à gauche
+        init = this.plateau.get(0).get(boardCols - 1).getState();
+        if (init != "B") {
+            for (int i = 1; i < boardCols; i++) {
+                if (this.plateau.get(i).get(boardCols - i - 1).getState().equals(init)) {
+                    if(i == boardCols - 1){
+                        return this.tour;
+                    }
+                }else{
+                    break;
+                }
+            }
+        }
 
         return null;
-
     }
 
+    //
+    public void setScore(Joueur j){
+        if(j == this.j1){
+            scorej1++;
+        }else{
+            scorej2++;
+        }
+    }
+
+
+    public ArrayList<int[]> getValidMoves() {
+        ArrayList<int[]> validMoves = new ArrayList<>();
+
+        // Parcours de la première ligne
+        for (int j = 0; j < boardCols; j++) {
+            addValidMoveIfValid(0, j, validMoves);
+        }
+
+        // Parcours de la première colonne (à l'exception du coin déjà parcouru)
+        for (int i = 1; i < boardRows; i++) {
+            addValidMoveIfValid(i, 0, validMoves);
+        }
+
+        // Parcours de la dernière colonne (à l'exception du coin déjà parcouru)
+        for (int i = 1; i < boardRows; i++) {
+            addValidMoveIfValid(i, boardCols - 1, validMoves);
+        }
+
+        // Parcours de la dernière ligne
+        for (int j = 0; j < boardCols; j++) {
+            addValidMoveIfValid(boardRows - 1, j, validMoves);
+        }
+
+        return validMoves;
+    }
+
+    private void addValidMoveIfValid(int row, int col, ArrayList<int[]> validMoves) {
+        // Vérifiez si la case est vide ou possède le statut du joueur actuel
+        if (this.plateau.get(row).get(col).getState().equals("B") || this.plateau.get(row).get(col).getState().equals(this.tour.status)) {
+            // Ajoutez les coordonnées de la case comme coup valide
+            int[] move = {row, col};
+            validMoves.add(move);
+        }
+    }
+
+    public Plateau clone() {
+        Plateau newBoard = new Plateau(j1, j2);  // Créer une nouvelle instance de Plateau
+
+        for (int i = 0; i < boardRows; i++) {
+            ArrayList<Pion> newRow = new ArrayList<>();
+
+            for (int j = 0; j < boardCols; j++) {
+                // Utiliser un constructeur de copie dans la classe Case si disponible
+                Pion clonedCase = new Pion(this.plateau.get(i).get(j).getState());
+                newRow.add(clonedCase);
+            }
+
+            newBoard.plateau.add(newRow);
+        }
+
+        return newBoard;
+    }
+
+
+    public int[] getMoveFromLastMove() {
+        return lastMove;
+    }
 }

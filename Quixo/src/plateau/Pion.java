@@ -4,6 +4,12 @@ public class Pion {
 
     private String state = "B";
 
+    public Pion(){}
+
+    public Pion(String s){
+        this.state = s;
+    }
+
     public String getState() {
         return state;
     }

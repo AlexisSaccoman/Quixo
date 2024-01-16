@@ -11,6 +11,9 @@ import java.util.ArrayList;
 
 public class Quixo extends Application {
 
+    public int scorej1 = 0;
+    public int scorej2 = 0;
+
     @Override
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("affichage/MenuView.fxml"));
